@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { getTodos, createTodo, updateTodo, deleteTodo } from "./api";
+import {
+  getTodos,
+  createTodo,
+  updateTodo,
+  deleteTodo,
+  isUsingLocalStorage,
+} from "./api";
 import { FILTERS } from "./filters";
 import Sidebar from "./components/Sidebar";
 import TodoForm from "./components/TodoForm";
@@ -10,6 +16,7 @@ function App() {
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [localMode, setLocalMode] = useState(false);
 
   // Runs an API action and shows its error in the banner if it fails
   const run = async (action) => {
@@ -23,28 +30,31 @@ function App() {
   };
 
   useEffect(() => {
-    run(async () => setTodos(await getTodos())).finally(() =>
-      setLoading(false)
-    );
+    run(async () => {
+      setTodos(await getTodos());
+      setLocalMode(isUsingLocalStorage());
+    }).finally(() => setLoading(false));
   }, []);
 
   const handleAdd = (title) =>
     run(async () => {
       const newTodo = await createTodo(title);
       setTodos((prev) => [newTodo, ...prev]);
+      setLocalMode(isUsingLocalStorage());
     });
 
   const handleUpdate = (id, data) =>
     run(async () => {
       const updated = await updateTodo(id, data);
-      // TODO: Complete this. Update the `todos` state so the edited todo is
-      // replaced with `updated` (keep every other todo as it is).
+      setTodos((prev) => prev.map((todo) => (todo._id === id ? updated : todo)));
+      setLocalMode(isUsingLocalStorage());
     });
 
   const handleDelete = (id) =>
     run(async () => {
       await deleteTodo(id);
       setTodos((prev) => prev.filter((t) => t._id !== id));
+      setLocalMode(isUsingLocalStorage());
     });
 
   const handleClearDone = () =>
@@ -52,6 +62,7 @@ function App() {
       const done = todos.filter(FILTERS.done.test);
       await Promise.all(done.map((t) => deleteTodo(t._id)));
       setTodos((prev) => prev.filter((t) => !t.completed));
+      setLocalMode(isUsingLocalStorage());
     });
 
   const filteredTodos = todos.filter(FILTERS[filter].test);
@@ -74,6 +85,12 @@ function App() {
         </header>
 
         <TodoForm onAdd={handleAdd} />
+
+        {localMode && (
+          <p className="storage-note" role="status">
+            Saved on this device. Connect MongoDB to sync todos with the server.
+          </p>
+        )}
 
         {error && (
           <div className="error" role="alert">

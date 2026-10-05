@@ -302,6 +302,12 @@ h2 {
   cursor: not-allowed;
 }
 
+.storage-note {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 /* Error banner */
 .error {
   display: flex;
